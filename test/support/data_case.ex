@@ -18,11 +18,13 @@ defmodule Averziano.DataCase do
     :ok
   end
 
+  @spec setup_sandbox(map()) :: :ok
   def setup_sandbox(tags) do
     pid = Ecto.Adapters.SQL.Sandbox.start_owner!(Averziano.Repo, shared: not tags[:async])
     on_exit(fn -> Ecto.Adapters.SQL.Sandbox.stop_owner(pid) end)
   end
 
+  @spec errors_on(Ecto.Changeset.t()) :: %{optional(atom()) => [String.t()]}
   def errors_on(changeset) do
     Ecto.Changeset.traverse_errors(changeset, fn {message, opts} ->
       Regex.replace(~r"%{(\w+)}", message, fn _, key ->

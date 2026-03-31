@@ -11,6 +11,7 @@ defmodule AverzianoWeb.FallbackController do
     internal_server_error: 500
   }
 
+  @spec call(Plug.Conn.t(), {:error, atom()} | {:error, atom(), String.t()}) :: Plug.Conn.t()
   def call(conn, {:error, reason}) when is_map_key(@status_map, reason) do
     status = Map.fetch!(@status_map, reason)
 

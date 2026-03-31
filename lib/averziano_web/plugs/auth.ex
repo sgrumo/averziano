@@ -3,8 +3,10 @@ defmodule AverzianoWeb.Plugs.Auth do
 
   import Plug.Conn
 
+  @spec init(Plug.opts()) :: Plug.opts()
   def init(opts), do: opts
 
+  @spec call(Plug.Conn.t(), Plug.opts()) :: Plug.Conn.t()
   def call(conn, _opts) do
     token_verifier = Application.fetch_env!(:averziano, :token_verifier)
 

@@ -12,3 +12,9 @@ dev-api: up
 
 test: up
 	mix test
+
+checklist:
+	mix format --check-formatted
+	mix credo --strict
+	mix compile --warning-as-errors
+	mix test

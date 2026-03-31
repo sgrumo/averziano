@@ -22,6 +22,7 @@ defmodule AverzianoWeb.ConnCase do
   @doc """
   Adds a valid Bearer token to the connection for authenticated API tests.
   """
+  @spec authenticate(Plug.Conn.t()) :: Plug.Conn.t()
   def authenticate(conn) do
     Plug.Conn.put_req_header(conn, "authorization", "Bearer valid_token")
   end
@@ -29,6 +30,7 @@ defmodule AverzianoWeb.ConnCase do
   @doc """
   Adds a superadmin Bearer token to the connection.
   """
+  @spec authenticate_superadmin(Plug.Conn.t()) :: Plug.Conn.t()
   def authenticate_superadmin(conn) do
     Plug.Conn.put_req_header(conn, "authorization", "Bearer valid_superadmin_token")
   end

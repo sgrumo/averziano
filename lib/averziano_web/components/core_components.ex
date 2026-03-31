@@ -8,6 +8,7 @@ defmodule AverzianoWeb.CoreComponents do
   attr :name, :string, required: true
   attr :class, :string, default: nil
 
+  @spec icon(map()) :: Phoenix.LiveView.Rendered.t()
   def icon(%{name: "hero-" <> _} = assigns) do
     ~H"""
     <span class={[@name, @class]} />
@@ -20,6 +21,7 @@ defmodule AverzianoWeb.CoreComponents do
   attr :flash, :map, required: true
   attr :kind, :atom, values: [:info, :error], required: true
 
+  @spec flash_message(map()) :: Phoenix.LiveView.Rendered.t()
   def flash_message(assigns) do
     ~H"""
     <div :if={msg = Phoenix.Flash.get(@flash, @kind)} role="alert">
@@ -36,6 +38,7 @@ defmodule AverzianoWeb.CoreComponents do
   """
   attr :flash, :map, required: true
 
+  @spec flash_group(map()) :: Phoenix.LiveView.Rendered.t()
   def flash_group(assigns) do
     ~H"""
     <.flash_message flash={@flash} kind={:info} />
@@ -55,6 +58,7 @@ defmodule AverzianoWeb.CoreComponents do
   attr :errors, :list, default: []
   attr :rest, :global, include: ~w(placeholder required disabled readonly)
 
+  @spec input(map()) :: Phoenix.LiveView.Rendered.t()
   def input(%{field: %Phoenix.HTML.FormField{} = field} = assigns) do
     errors = if Phoenix.Component.used_input?(field), do: field.errors, else: []
 
