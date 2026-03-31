@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(mix:*)"
+      "Bash(mix:*)",
+      "Bash(elixir --version)"
     ]
   }
 }
