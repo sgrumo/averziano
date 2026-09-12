@@ -1,9 +1,7 @@
 defmodule Averziano do
   @moduledoc """
-  Averziano keeps the contexts that define your domain
-  and business logic.
-
-  Contexts are also responsible for managing your data, regardless
-  if it comes from the database, an external API or others.
+  Averziano keeps the Ash domains and resources that define your business
+  logic. Each domain (`Averziano.Accounts`, ...) exposes a code interface that
+  the web layer calls; resources are never queried directly from the web layer.
   """
 end

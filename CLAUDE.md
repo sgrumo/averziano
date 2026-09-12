@@ -4,20 +4,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Averziano is a Phoenix 1.8 application (JSON API + LiveView) backed by PostgreSQL with Ecto. Uses Bandit as HTTP server, binary UUIDs as primary keys, and esbuild/Tailwind for asset bundling.
+Averziano is a Phoenix 1.8 application (JSON API + LiveView) built on the Ash framework (Ash 3 + AshPostgres + AshPhoenix) with PostgreSQL. Uses Bandit as HTTP server, binary UUIDs as primary keys, and esbuild/Tailwind for asset bundling.
 
 ## Common Commands
 
 - `mix setup` — install deps, create DB, run migrations, seed, install assets
 - `mix phx.server` — start the server (localhost:4000)
 - `iex -S mix phx.server` — start with interactive shell
-- `mix test` — run all tests (auto-creates/migrates DB)
+- `mix test` — run all tests (auto-creates/migrates DB via `ash.setup`)
 - `mix test test/path/to/test.exs` — run a single test file
 - `mix test test/path/to/test.exs:42` — run a specific test by line number
 - `mix test --failed` — re-run previously failed tests
-- `mix precommit` — compile (warnings-as-errors), unlock unused deps, format, test. **Run before committing.**
-- `mix ecto.gen.migration migration_name` — generate a new migration (always use this, never create manually)
-- `mix ecto.migrate` / `mix ecto.reset` — run migrations / drop + recreate
+- `mix precommit` — compile (warnings-as-errors), unlock unused deps, format, `ash.codegen --check`, test. **Run before committing.**
+- `mix ash.codegen <name>` — generate migrations + resource snapshots from resource changes (**never write migrations by hand**; `mix ash.codegen --dev` for throwaway dev iterations, then squash with a named run)
+- `mix ash.codegen --check` — fail if resources have changes without a migration
+- `mix ash.migrate` / `mix ash.reset` — run migrations / drop + recreate
+- `mix ash.gen.domain Averziano.Name` / `mix ash.gen.resource Averziano.Name.Thing --domain Averziano.Name ...` — Igniter generators for new domains/resources
 - `mix credo --strict` — static analysis
 - `mix dialyzer` — type checking (first run builds PLT, takes a while)
 - `make up` / `make down` — start/stop Docker Postgres
@@ -25,17 +27,23 @@ Averziano is a Phoenix 1.8 application (JSON API + LiveView) backed by PostgreSQ
 
 ## Architecture
 
-### Context Pattern
+### Ash Domains (replaces Phoenix contexts)
 
-Strict separation: `lib/averziano/` (business logic) vs `lib/averziano_web/` (web layer). Controllers never touch `Repo` directly — all DB access goes through context modules.
+Strict separation: `lib/averziano/` (Ash domains + resources) vs `lib/averziano_web/` (web layer).
+
+- One domain per bounded context: `lib/averziano/accounts.ex` (`Averziano.Accounts`, `use Ash.Domain`) with resources under `lib/averziano/accounts/*.ex`.
+- Every domain is registered in `config :averziano, ash_domains: [...]`.
+- The domain's `code_interface` (`define :register_user, action: :register`) **is** the public API. The web layer calls `Accounts.register_user(params, actor: actor)` — never `Ash.create/read` on a resource, never `Repo`.
+- Resources use `AshPostgres.DataLayer`, `Ash.Policy.Authorizer`, `uuid_primary_key :id`, and `timestamps()`. Prefer named, explicit actions with `accept` lists over wide defaults.
+- Cross-cutting DSL config lives in `config/config.exs` (`config :ash, ...` backwards-compatibility flags, `config :spark, formatter: [section_order: ...]`).
 
 ### Error Flow
 
-`Averziano.Errors` defines typed error tuples (`{:error, reason}` or `{:error, reason, details}`). All context functions return `{:ok, result} | Errors.t()`. The `FallbackController` maps error atoms to HTTP status codes — controllers use `action_fallback` and return error tuples directly.
+Domain calls return Ash errors (`Ash.Error.Invalid`, `Ash.Error.Forbidden`, ...). `Averziano.Errors.normalize/1` maps them to the typed tuples (`{:error, :not_found}`, `{:error, :forbidden}`, `{:error, :unprocessable_entity, %{field => [msg]}}`, `{:error, :internal_server_error}`); already-typed tuples pass through. The `FallbackController` accepts both raw Ash errors and typed tuples, so controllers use `action_fallback` and return whatever the domain returns. Validation errors render as `%{errors: %{field: [messages]}}`.
 
-### Auth
+### Auth & Actors
 
-Swappable token verification via config: `config :averziano, token_verifier: Averziano.Auth.Token` (production) / `Averziano.Auth.TokenMock` (test). The `AverzianoWeb.Plugs.Auth` plug reads config at runtime. LiveView auth uses session-based `on_mount` hook (`AverzianoWeb.Live.AuthHook`).
+Swappable token verification via config: `config :averziano, token_verifier: Averziano.Auth.Token` (production) / `Averziano.Auth.TokenMock` (test). `AverzianoWeb.Plugs.Auth` verifies the Bearer token, assigns `current_user_claims`, and sets the claims map as the Ash actor (`Ash.PlugHelpers.set_actor/2`; read with `Ash.PlugHelpers.get_actor/1`). LiveView auth uses the session-based `on_mount` hook (`AverzianoWeb.Live.AuthHook`), which assigns `:current_user_id` and `:actor`. Always pass `actor:` to domain calls; policies default to `authorize_if actor_present()`. Note: with `no_filter_static_forbidden_reads?: false`, a forbidden *read* returns an empty result instead of an error — writes raise `Ash.Error.Forbidden`.
 
 ### Router Organization
 
@@ -54,9 +62,10 @@ Flat `one_for_one`: Telemetry -> Repo -> [TelemetryUI] -> DNSCluster -> PubSub -
 - Generators use `binary_id: true` and `utc_datetime` timestamps
 - Use `Req` for HTTP requests (avoid HTTPoison, Tesla, httpc)
 - Never nest multiple modules in the same file
-- Ecto schema `:text` columns use `:string` type
-- Fields set programmatically (e.g. `user_id`) must not appear in `cast` — set them explicitly
-- Use `Ecto.Changeset.get_field/2` to read changeset fields (not `changeset[:field]`)
+- Attributes set programmatically (e.g. `user_id`) must not appear in an action's `accept` — set them via `change set_attribute/2`, `relate_actor/1`, or `manage_relationship`
+- Use `Ash.Changeset.get_attribute/2` / `get_argument/2` to read changeset values in changes and validations
+- Prefer `Ash.Query` (`require Ash.Query`, `Ash.Query.filter/2`) and calculations/aggregates over raw `Ecto.Query`
+- Commit `priv/resource_snapshots/` together with the migrations `mix ash.codegen` generates
 - Phoenix router `scope` blocks auto-prefix module aliases — don't duplicate them
 - Use `start_supervised!/1` in tests; avoid `Process.sleep/1`
 - Predicate functions end with `?` (no `is_` prefix unless it's a guard)
@@ -64,8 +73,8 @@ Flat `one_for_one`: Telemetry -> Repo -> [TelemetryUI] -> DNSCluster -> PubSub -
 - Every public function must have `@spec` (Credo strict mode enforces this)
 - No vague module names: Manager, Helper, Utils, Fetcher, Builder, Serializer
 - JSON API responses wrapped: `%{data: ...}`
-- Test factories via ExMachina (`test/support/factory.ex`), auto-imported in ConnCase/DataCase
-- `authenticate(conn)` helper available in ConnCase for authenticated API tests
+- Test data via `Ash.Generator` (`test/support/generator.ex`, `Averziano.Generator`), auto-imported in ConnCase/DataCase: `generate(user(name: "Ada"))`, `generate_many(user(), 3)`. Generators run the real actions with `authorize?: false`.
+- `actor()` in DataCase returns the test actor; `authenticate(conn)` in ConnCase adds the matching Bearer token
 
 ## Testing Principles
 

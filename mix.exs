@@ -53,6 +53,13 @@ defmodule Averziano.MixProject do
       {:ecto_sql, "~> 3.13"},
       {:postgrex, ">= 0.0.0"},
 
+      # Ash
+      {:ash, "~> 3.33"},
+      {:ash_postgres, "~> 2.13"},
+      {:ash_phoenix, "~> 2.3"},
+      {:simple_sat, "~> 0.1"},
+      {:igniter, "~> 0.8", only: [:dev, :test]},
+
       # HTTP server
       {:bandit, "~> 1.5"},
 
@@ -83,18 +90,23 @@ defmodule Averziano.MixProject do
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
 
       # Test
-      {:excoveralls, "~> 0.18", only: :test},
-      {:ex_machina, "~> 2.8", only: :test}
+      {:excoveralls, "~> 0.18", only: :test}
     ]
   end
 
   defp aliases do
     [
-      setup: ["deps.get", "ecto.setup", "assets.setup", "assets.build"],
-      "ecto.setup": ["ecto.create", "ecto.migrate", "run priv/repo/seeds.exs"],
+      setup: ["deps.get", "ash.setup", "assets.setup", "assets.build", "run priv/repo/seeds.exs"],
+      "ecto.setup": ["ash.setup", "run priv/repo/seeds.exs"],
       "ecto.reset": ["ecto.drop", "ecto.setup"],
-      test: ["ecto.create --quiet", "ecto.migrate --quiet", "test"],
-      precommit: ["compile --warnings-as-errors", "deps.unlock --unused", "format", "test"],
+      test: ["ash.setup --quiet", "test"],
+      precommit: [
+        "compile --warnings-as-errors",
+        "deps.unlock --unused",
+        "format",
+        "ash.codegen --check",
+        "test"
+      ],
       "assets.setup": ["tailwind.install --if-missing", "esbuild.install --if-missing"],
       "assets.build": ["tailwind averziano", "esbuild averziano"],
       "assets.deploy": [

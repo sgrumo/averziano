@@ -15,6 +15,10 @@ config :averziano, AverzianoWeb.Endpoint,
 
 config :averziano, token_verifier: Averziano.Auth.TokenMock
 
+config :ash,
+  disable_async?: true,
+  policies: [show_policy_breakdowns?: true]
+
 config :logger, level: :warning
 
 config :phoenix, :plug_init_mode, :runtime

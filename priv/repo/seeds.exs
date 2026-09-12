@@ -2,10 +2,9 @@
 #
 #     mix run priv/repo/seeds.exs
 #
-# Inside the script, you can read and write to any of your
-# repositories directly:
+# Seed through the domain code interfaces (or `Ash.Seed.seed!/2` to bypass
+# actions) so validations and defaults apply:
 #
-#     Averziano.Repo.insert!(%Averziano.SomeSchema{})
-#
-# We recommend using the bang functions (`insert!`, `update!`
-# and so on) as they will fail if something goes wrong.
+#     Averziano.Accounts.register_user!(%{email: "admin@example.com", name: "Admin"},
+#       authorize?: false
+#     )

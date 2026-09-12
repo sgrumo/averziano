@@ -10,7 +10,7 @@ defmodule AverzianoWeb.ConnCase do
       import Plug.Conn
       import Phoenix.ConnTest
       import AverzianoWeb.ConnCase
-      import Averziano.Factory
+      import Averziano.Generator
     end
   end
 

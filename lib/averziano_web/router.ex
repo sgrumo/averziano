@@ -29,6 +29,8 @@ defmodule AverzianoWeb.Router do
   # Authenticated API
   scope "/api", AverzianoWeb do
     pipe_through [:api, :authenticated]
+
+    resources "/users", UserController, except: [:new, :edit]
   end
 
   # Admin (browser + LiveView)

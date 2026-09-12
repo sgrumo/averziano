@@ -22,6 +22,8 @@ config :averziano, AverzianoWeb.Endpoint,
 
 config :averziano, dev_routes: true
 
+config :ash, policies: [show_policy_breakdowns?: true]
+
 config :logger, :default_formatter, format: "[$level] $message\n"
 
 config :phoenix, :stacktrace_depth, 20

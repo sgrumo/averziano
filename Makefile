@@ -16,5 +16,6 @@ test: up
 checklist:
 	mix format --check-formatted
 	mix credo --strict
-	mix compile --warning-as-errors
+	mix compile --warnings-as-errors
+	mix ash.codegen --check
 	mix test
