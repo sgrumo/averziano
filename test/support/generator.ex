@@ -20,6 +20,7 @@ defmodule Averziano.Generator do
   def user(opts \\ []) do
     changeset_generator(User, :register,
       defaults: [
+        subject: sequence(:user_subject, &"subject-#{&1}"),
         email: sequence(:user_email, &"user#{&1}@example.com"),
         name: "Test User"
       ],

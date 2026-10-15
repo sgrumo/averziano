@@ -1,8 +1,11 @@
 defmodule AverzianoWeb.Live.AuthHook do
   @moduledoc """
-  Session-based LiveView auth. Assigns `:current_user_id` and an Ash `:actor`
-  so LiveViews can pass `actor: socket.assigns.actor` to domain calls.
+  Session-based LiveView auth. Assigns `:current_user_id` (the user's token
+  subject) and an `Averziano.Auth.Actor` as `:actor`, so LiveViews can pass
+  `actor: socket.assigns.actor` to domain calls.
   """
+
+  alias Averziano.Auth.Actor
 
   import Phoenix.LiveView
   import Phoenix.Component
@@ -15,7 +18,7 @@ defmodule AverzianoWeb.Live.AuthHook do
         {:cont,
          socket
          |> assign(:current_user_id, user_id)
-         |> assign(:actor, %{"sub" => user_id})}
+         |> assign(:actor, %Actor{subject: user_id})}
 
       _ ->
         {:halt, redirect(socket, to: "/")}

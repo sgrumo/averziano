@@ -22,6 +22,14 @@ config :averziano, AverzianoWeb.Endpoint,
 
 config :averziano, dev_routes: true
 
+# Dev-only HMAC secret; mint local tokens with `Averziano.Auth.Token.generate_and_sign!/2`
+# (pass `Averziano.Auth.Token.signer()` and `iss`/`aud`/`sub` claims).
+config :averziano, Averziano.Auth.Token,
+  signer_alg: "HS256",
+  signer_key: "dev-only-jwt-secret-do-not-use-in-production",
+  issuer: "averziano-dev",
+  audience: "averziano"
+
 config :ash, policies: [show_policy_breakdowns?: true]
 
 config :logger, :default_formatter, format: "[$level] $message\n"

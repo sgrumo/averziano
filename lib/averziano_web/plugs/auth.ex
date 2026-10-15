@@ -1,11 +1,13 @@
 defmodule AverzianoWeb.Plugs.Auth do
   @moduledoc """
-  Verifies the Bearer token and exposes the verified claims both as
-  `conn.assigns.current_user_claims` and as the Ash actor
-  (readable with `Ash.PlugHelpers.get_actor/1`).
+  Verifies the Bearer token, assigns the verified claims to
+  `conn.assigns.current_user_claims`, and sets an `Averziano.Auth.Actor` built
+  from them as the Ash actor (readable with `Ash.PlugHelpers.get_actor/1`).
   """
 
   import Plug.Conn
+
+  alias Averziano.Auth.Actor
 
   @spec init(Plug.opts()) :: Plug.opts()
   def init(opts), do: opts
@@ -18,7 +20,7 @@ defmodule AverzianoWeb.Plugs.Auth do
          {:ok, claims} <- token_verifier.verify_token(token) do
       conn
       |> assign(:current_user_claims, claims)
-      |> Ash.PlugHelpers.set_actor(claims)
+      |> Ash.PlugHelpers.set_actor(Actor.from_claims(claims))
     else
       _ ->
         conn

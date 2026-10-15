@@ -53,6 +53,20 @@ if config_env() == :prod do
       You can generate one by calling: mix phx.gen.secret
       """
 
+  # JWT verification. JWT_KEY is the HMAC secret for HS* algorithms, or the
+  # PEM-encoded public key for RS*/ES*/PS* algorithms.
+  config :averziano, Averziano.Auth.Token,
+    signer_alg: System.get_env("JWT_ALG", "RS256"),
+    signer_key:
+      System.get_env("JWT_KEY") ||
+        raise("environment variable JWT_KEY is missing (HMAC secret or PEM public key)"),
+    issuer:
+      System.get_env("JWT_ISSUER") ||
+        raise("environment variable JWT_ISSUER is missing (expected `iss` claim)"),
+    audience:
+      System.get_env("JWT_AUDIENCE") ||
+        raise("environment variable JWT_AUDIENCE is missing (expected `aud` claim)")
+
   host = System.get_env("PHX_HOST") || "example.com"
 
   config :averziano, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")

@@ -121,7 +121,9 @@ The `FallbackController` accepts both raw Ash errors and typed tuples and maps t
 
 ### Authorization
 
-Resources use `Ash.Policy.Authorizer`. The verified JWT claims are set as the Ash **actor** by `AverzianoWeb.Plugs.Auth` (`Ash.PlugHelpers.set_actor/2`) and by `AverzianoWeb.Live.AuthHook` (`socket.assigns.actor`); pass `actor:` to every domain call. The default policy is `authorize_if actor_present()`. Forbidden reads return an empty result set (`no_filter_static_forbidden_reads?: false`); forbidden writes return `Ash.Error.Forbidden`.
+Resources use `Ash.Policy.Authorizer`. The Ash **actor** is an `Averziano.Auth.Actor` (`subject` = the token's `sub`, `admin?` = `"admin"` in the token's `roles` claim), set by `AverzianoWeb.Plugs.Auth` (`Ash.PlugHelpers.set_actor/2`) and by `AverzianoWeb.Live.AuthHook` (`socket.assigns.actor`); pass `actor:` to every domain call.
+
+`User.subject` links a user to the identity provider. Admins bypass `User` policies; everyone else can only read, update and delete the user whose `subject` matches theirs. `register` takes the subject from the actor, and only admins may pass a different `subject`. Forbidden reads return an empty result set (`no_filter_static_forbidden_reads?: false`); forbidden writes return `Ash.Error.Forbidden`.
 
 ### Authentication
 
@@ -136,6 +138,15 @@ config :averziano, token_verifier: Averziano.Auth.TokenMock
 ```
 
 The `AverzianoWeb.Plugs.Auth` plug reads the verifier from config at runtime, enabling mock injection in tests without Mox.
+
+`Averziano.Auth.Token` reads its signer, issuer and audience from `config :averziano, Averziano.Auth.Token` (dev/test values in `config/dev.exs` / `config/test.exs`). Tokens must carry `sub`, `exp`, `iss` and `aud`. In production, set:
+
+| Variable | Purpose |
+|---|---|
+| `JWT_ALG` | Signing algorithm (default `RS256`) |
+| `JWT_KEY` | HMAC secret for `HS*`, or PEM public key for `RS*`/`ES*`/`PS*` |
+| `JWT_ISSUER` | Expected `iss` claim |
+| `JWT_AUDIENCE` | Expected `aud` claim |
 
 LiveView uses session-based auth via the `AverzianoWeb.Live.AuthHook` `on_mount` callback.
 
@@ -231,7 +242,8 @@ Flags: `error_handling`, `unknown`, `unmatched_returns`, `underspecs`. PLT files
 - **ExUnit** with **ExCoveralls** for coverage
 - **Ash.Generator** for test data (`test/support/generator.ex`): `generate(user())`, `generate_many(user(), 3)`
 - Generator auto-imported in both `DataCase` and `ConnCase`; `actor()` in `DataCase` returns the test actor
-- Auth helpers in `ConnCase`: `authenticate(conn)`, `authenticate_superadmin(conn)`
+- `admin()` in `DataCase` returns an admin actor; `actor(subject)` a non-admin actor for another subject
+- Auth helpers in `ConnCase`: `authenticate(conn)` (subject `"test-user-id"`), `authenticate_admin(conn)`
 - Test cases: `DataCase` (DB), `ConnCase` (HTTP), `ChannelCase` (WebSocket)
 - Tests mirror source directory structure
 

@@ -1,6 +1,8 @@
 defmodule Averziano.DataCase do
   use ExUnit.CaseTemplate
 
+  alias Averziano.Auth.Actor
+
   using do
     quote do
       alias Averziano.Repo
@@ -24,9 +26,15 @@ defmodule Averziano.DataCase do
   end
 
   @doc """
-  The actor used by tests for authorized domain calls. Mirrors the claims
-  returned by `Averziano.Auth.TokenMock` for `"valid_token"`.
+  A non-admin actor for authorized domain calls. With no argument it mirrors
+  `Averziano.Auth.TokenMock`'s `"valid_token"`.
   """
-  @spec actor() :: map()
-  def actor, do: %{"sub" => "test-user-id"}
+  @spec actor(String.t()) :: Actor.t()
+  def actor(subject \\ "test-user-id"), do: %Actor{subject: subject}
+
+  @doc """
+  An admin actor. Mirrors `Averziano.Auth.TokenMock`'s `"valid_admin_token"`.
+  """
+  @spec admin() :: Actor.t()
+  def admin, do: %Actor{subject: "test-admin-id", admin?: true}
 end

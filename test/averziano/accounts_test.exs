@@ -6,11 +6,15 @@ defmodule Averziano.AccountsTest do
   alias Averziano.Errors
 
   describe "register_user/2" do
-    test "creates a user with a case-insensitive unique email" do
+    test "registers the actor's own user from its subject" do
       assert {:ok, %User{} = user} =
-               Accounts.register_user(%{email: "Ada@Example.com", name: "Ada"}, actor: actor())
+               Accounts.register_user(%{email: "ada@example.com", name: "Ada"}, actor: actor())
 
-      assert to_string(user.email) == "Ada@Example.com"
+      assert user.subject == actor().subject
+    end
+
+    test "rejects an email that is taken, case-insensitively" do
+      generate(user(email: "Ada@Example.com"))
 
       assert {:error, error} =
                Accounts.register_user(%{email: "ada@example.com", name: "Dup"}, actor: actor())
@@ -28,41 +32,78 @@ defmodule Averziano.AccountsTest do
       assert Map.has_key?(errors, :email)
       assert Map.has_key?(errors, :name)
     end
+
+    test "only admins can register another subject" do
+      params = %{email: "bob@example.com", name: "Bob", subject: "bob"}
+
+      assert {:error, error} = Accounts.register_user(params, actor: actor())
+      assert Errors.normalize({:error, error}) == {:error, :forbidden}
+
+      assert {:ok, %User{subject: "bob"}} = Accounts.register_user(params, actor: admin())
+    end
   end
 
-  describe "get_user/2" do
-    test "returns the user, or a not found error" do
-      user = generate(user())
+  describe "reads" do
+    test "non-admins only see their own user" do
+      own = generate(user(subject: actor().subject))
+      other = generate(user())
 
-      assert {:ok, %User{id: id}} = Accounts.get_user(user.id, actor: actor())
-      assert id == user.id
+      assert {:ok, [%User{id: id}]} = Accounts.list_users(actor: actor())
+      assert id == own.id
 
-      assert {:error, error} = Accounts.get_user(Ash.UUID.generate(), actor: actor())
+      assert {:ok, %User{id: ^id}} = Accounts.get_user(own.id, actor: actor())
+
+      assert {:error, error} = Accounts.get_user(other.id, actor: actor())
       assert Errors.normalize({:error, error}) == {:error, :not_found}
+    end
+
+    test "admins see every user" do
+      users = generate_many(user(), 2)
+
+      assert {:ok, listed} = Accounts.list_users(actor: admin())
+      assert Enum.sort(Enum.map(listed, & &1.id)) == Enum.sort(Enum.map(users, & &1.id))
     end
   end
 
   describe "update_user/3 and delete_user/2" do
-    test "updates the name and deletes the user" do
-      user = generate(user(name: "Before"))
+    test "non-admins can update and delete only their own user" do
+      own = generate(user(subject: actor().subject, name: "Before"))
+      other = generate(user())
 
       assert {:ok, %User{name: "After"}} =
-               Accounts.update_user(user, %{name: "After"}, actor: actor())
+               Accounts.update_user(own, %{name: "After"}, actor: actor())
 
-      assert :ok = Accounts.delete_user(user, actor: actor())
-      assert {:ok, []} = Accounts.list_users(actor: actor())
+      assert {:error, error} = Accounts.update_user(other, %{name: "Nope"}, actor: actor())
+      assert Errors.normalize({:error, error}) == {:error, :forbidden}
+
+      assert {:error, error} = Accounts.delete_user(other, actor: actor())
+      assert Errors.normalize({:error, error}) == {:error, :forbidden}
+
+      assert :ok = Accounts.delete_user(own, actor: actor())
+      assert {:ok, [%User{id: other_id}]} = Accounts.list_users(actor: admin())
+      assert other_id == other.id
+    end
+
+    test "admins can update and delete any user" do
+      user = generate(user())
+
+      assert {:ok, %User{name: "Renamed"}} =
+               Accounts.update_user(user, %{name: "Renamed"}, actor: admin())
+
+      assert :ok = Accounts.delete_user(user, actor: admin())
     end
   end
 
-  describe "policies" do
-    test "without an actor, reads are filtered to nothing and writes are forbidden" do
+  describe "without an actor" do
+    test "reads are filtered to nothing and writes are rejected" do
       user = generate(user())
 
       # `no_filter_static_forbidden_reads?: false` turns a forbidden read into an empty result.
       assert {:ok, []} = Accounts.list_users()
 
+      # The subject comes from the actor, so the changeset is invalid before policies run.
       assert {:error, error} = Accounts.register_user(%{email: "x@example.com", name: "X"})
-      assert Errors.normalize({:error, error}) == {:error, :forbidden}
+      assert {:error, :unprocessable_entity, %{subject: _}} = Errors.normalize({:error, error})
 
       assert {:error, error} = Accounts.update_user(user, %{name: "Nope"})
       assert Errors.normalize({:error, error}) == {:error, :forbidden}

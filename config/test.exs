@@ -15,6 +15,12 @@ config :averziano, AverzianoWeb.Endpoint,
 
 config :averziano, token_verifier: Averziano.Auth.TokenMock
 
+config :averziano, Averziano.Auth.Token,
+  signer_alg: "HS256",
+  signer_key: "test-only-jwt-secret",
+  issuer: "averziano-test",
+  audience: "averziano"
+
 config :ash,
   disable_async?: true,
   policies: [show_policy_breakdowns?: true]

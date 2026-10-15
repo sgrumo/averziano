@@ -43,7 +43,7 @@ Domain calls return Ash errors (`Ash.Error.Invalid`, `Ash.Error.Forbidden`, ...)
 
 ### Auth & Actors
 
-Swappable token verification via config: `config :averziano, token_verifier: Averziano.Auth.Token` (production) / `Averziano.Auth.TokenMock` (test). `AverzianoWeb.Plugs.Auth` verifies the Bearer token, assigns `current_user_claims`, and sets the claims map as the Ash actor (`Ash.PlugHelpers.set_actor/2`; read with `Ash.PlugHelpers.get_actor/1`). LiveView auth uses the session-based `on_mount` hook (`AverzianoWeb.Live.AuthHook`), which assigns `:current_user_id` and `:actor`. Always pass `actor:` to domain calls; policies default to `authorize_if actor_present()`. Note: with `no_filter_static_forbidden_reads?: false`, a forbidden *read* returns an empty result instead of an error — writes raise `Ash.Error.Forbidden`.
+Swappable token verification via config: `config :averziano, token_verifier: Averziano.Auth.Token` (production) / `Averziano.Auth.TokenMock` (test). `AverzianoWeb.Plugs.Auth` verifies the Bearer token, assigns `current_user_claims`, and sets an `Averziano.Auth.Actor` (`subject` = `sub` claim, `admin?` = `"admin" in roles`) as the Ash actor (`Ash.PlugHelpers.set_actor/2`; read with `Ash.PlugHelpers.get_actor/1`). LiveView auth uses the session-based `on_mount` hook (`AverzianoWeb.Live.AuthHook`), which assigns `:current_user_id` and `:actor`. Always pass `actor:` to domain calls. `Averziano.Auth.Token` config (signer, issuer, audience) lives under `config :averziano, Averziano.Auth.Token`; prod reads `JWT_ALG`/`JWT_KEY`/`JWT_ISSUER`/`JWT_AUDIENCE` in `runtime.exs`. Policies: admins bypass; others are scoped by `expr(subject == ^actor(:subject))`. `User.register` deliberately accepts `subject` (defaulted from the actor via `set_new_attribute`) so admins can provision other users — the policy forbids non-admins from setting a foreign one. Note: with `no_filter_static_forbidden_reads?: false`, a forbidden *read* returns an empty result instead of an error — writes raise `Ash.Error.Forbidden`.
 
 ### Router Organization
 
@@ -74,7 +74,7 @@ Flat `one_for_one`: Telemetry -> Repo -> [TelemetryUI] -> DNSCluster -> PubSub -
 - No vague module names: Manager, Helper, Utils, Fetcher, Builder, Serializer
 - JSON API responses wrapped: `%{data: ...}`
 - Test data via `Ash.Generator` (`test/support/generator.ex`, `Averziano.Generator`), auto-imported in ConnCase/DataCase: `generate(user(name: "Ada"))`, `generate_many(user(), 3)`. Generators run the real actions with `authorize?: false`.
-- `actor()` in DataCase returns the test actor; `authenticate(conn)` in ConnCase adds the matching Bearer token
+- `actor()` in DataCase returns the test actor (`actor(subject)` for another subject, `admin()` for an admin); `authenticate(conn)` / `authenticate_admin(conn)` in ConnCase add the matching Bearer tokens
 
 ## Testing Principles
 

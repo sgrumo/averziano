@@ -28,10 +28,10 @@ defmodule AverzianoWeb.ConnCase do
   end
 
   @doc """
-  Adds a superadmin Bearer token to the connection.
+  Adds an admin Bearer token to the connection.
   """
-  @spec authenticate_superadmin(Plug.Conn.t()) :: Plug.Conn.t()
-  def authenticate_superadmin(conn) do
-    Plug.Conn.put_req_header(conn, "authorization", "Bearer valid_superadmin_token")
+  @spec authenticate_admin(Plug.Conn.t()) :: Plug.Conn.t()
+  def authenticate_admin(conn) do
+    Plug.Conn.put_req_header(conn, "authorization", "Bearer valid_admin_token")
   end
 end
