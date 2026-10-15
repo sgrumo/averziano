@@ -28,6 +28,24 @@ defmodule AverzianoWeb.UserControllerTest do
     assert Enum.sort(Enum.map(data, & &1["id"])) == Enum.sort([own.id, other.id])
   end
 
+  test "GET /api/users pages with limit and the meta.next cursor", %{conn: conn} do
+    conn = authenticate_admin(conn)
+    generate_many(user(), 2)
+
+    assert %{"data" => [%{"id" => first_id}], "meta" => %{"next" => cursor}} =
+             conn |> get(~p"/api/users?limit=1") |> json_response(200)
+
+    assert %{"data" => [%{"id" => second_id}], "meta" => %{"next" => nil}} =
+             conn |> get(~p"/api/users?limit=1&after=#{cursor}") |> json_response(200)
+
+    assert first_id != second_id
+
+    for limit <- ["0", "101", "abc"] do
+      assert %{"errors" => %{"detail" => "Bad Request"}} =
+               conn |> get(~p"/api/users?limit=#{limit}") |> json_response(400)
+    end
+  end
+
   test "GET /api/users/:id returns the caller's user and 404 for anyone else's", %{conn: conn} do
     conn = authenticate(conn)
     user = generate(user(subject: @subject, name: "Ada"))
@@ -42,11 +60,16 @@ defmodule AverzianoWeb.UserControllerTest do
 
     assert %{"errors" => %{"detail" => "Not Found"}} =
              conn |> get(~p"/api/users/#{other.id}") |> json_response(404)
+
+    assert %{"errors" => %{"id" => ["is invalid"]}} =
+             conn |> get(~p"/api/users/not-a-uuid") |> json_response(422)
   end
 
-  test "POST /api/users registers the caller, with 422 on invalid input and 403 for another subject",
+  test "POST /api/users registers the caller; 400 without a user, 422 if invalid, 403 for another subject",
        %{conn: conn} do
     conn = authenticate(conn)
+
+    assert_error_sent 400, fn -> post(conn, ~p"/api/users", %{"email" => "ada@example.com"}) end
 
     assert %{"errors" => %{"name" => ["is required"]}} =
              conn

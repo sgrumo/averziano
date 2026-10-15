@@ -159,6 +159,8 @@ LiveView uses session-based auth via the `AverzianoWeb.Live.AuthHook` `on_mount`
 | `/api` | `:api`, `:authenticated` | Protected JSON endpoints (`/api/users` example resource) |
 | `/admin` | `:browser` | Admin LiveViews (`live_session` with auth hook) |
 
+`GET /api/users` is paginated with a keyset cursor: `?limit=` (1–100, default 50) and `?after=` set to the previous response's `meta.next` (`null` on the last page).
+
 ### Web Module Dispatch
 
 `AverzianoWeb` provides quoted blocks via `use AverzianoWeb, :type`:

@@ -5,10 +5,15 @@ defmodule AverzianoWeb.UserController do
 
   action_fallback AverzianoWeb.FallbackController
 
+  @doc """
+  Lists users a page at a time. Accepts `limit` (1-100, default 50) and the
+  `after` cursor returned in the previous page's `meta.next`.
+  """
   @spec index(Plug.Conn.t(), map()) :: Plug.Conn.t()
-  def index(conn, _params) do
-    with {:ok, users} <- Accounts.list_users(actor: actor(conn)) do
-      render(conn, :index, users: users)
+  def index(conn, params) do
+    with {:ok, page_opts} <- page_opts(params),
+         {:ok, page} <- Accounts.list_users(actor: actor(conn), page: page_opts) do
+      render(conn, :index, page: page)
     end
   end
 
@@ -50,4 +55,19 @@ defmodule AverzianoWeb.UserController do
   end
 
   defp actor(conn), do: Ash.PlugHelpers.get_actor(conn)
+
+  defp page_opts(params) do
+    after_opt = if cursor = params["after"], do: [after: cursor], else: []
+
+    case params["limit"] do
+      nil ->
+        {:ok, after_opt}
+
+      limit ->
+        case Integer.parse(limit) do
+          {limit, ""} when limit in 1..100 -> {:ok, [limit: limit] ++ after_opt}
+          _ -> {:error, :bad_request}
+        end
+    end
+  end
 end

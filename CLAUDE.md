@@ -72,7 +72,7 @@ Flat `one_for_one`: Telemetry -> Repo -> [TelemetryUI] -> DNSCluster -> PubSub -
 - Don't use `String.to_atom/1` on user input
 - Every public function must have `@spec` (Credo strict mode enforces this)
 - No vague module names: Manager, Helper, Utils, Fetcher, Builder, Serializer
-- JSON API responses wrapped: `%{data: ...}`
+- JSON API responses wrapped: `%{data: ...}`; paginated lists add `meta: %{next: cursor | nil}` (keyset pagination via a `pagination keyset?: true` read action, `limit`/`after` query params)
 - Test data via `Ash.Generator` (`test/support/generator.ex`, `Averziano.Generator`), auto-imported in ConnCase/DataCase: `generate(user(name: "Ada"))`, `generate_many(user(), 3)`. Generators run the real actions with `authorize?: false`.
 - `actor()` in DataCase returns the test actor (`actor(subject)` for another subject, `admin()` for an admin); `authenticate(conn)` / `authenticate_admin(conn)` in ConnCase add the matching Bearer tokens
 

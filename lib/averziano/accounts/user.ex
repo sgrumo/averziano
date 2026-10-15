@@ -19,16 +19,29 @@ defmodule Averziano.Accounts.User do
   end
 
   actions do
-    defaults [:read, :destroy]
+    read :read do
+      primary? true
+    end
+
+    read :list do
+      pagination keyset?: true, required?: true, default_limit: 50, max_page_size: 100
+    end
 
     create :register do
       description "Registers the actor's own user. Admins may pass `subject` to register someone else."
       accept [:email, :name, :subject]
       change set_new_attribute(:subject, actor(:subject))
+
+      validate match(:email, ~r/^[^\s@]+@[^\s@]+\.[^\s@]+$/),
+        message: "must be a valid email address"
     end
 
     update :update do
       accept [:name]
+    end
+
+    destroy :destroy do
+      primary? true
     end
   end
 
@@ -53,11 +66,13 @@ defmodule Averziano.Accounts.User do
     attribute :email, :ci_string do
       allow_nil? false
       public? true
+      constraints max_length: 254
     end
 
     attribute :name, :string do
       allow_nil? false
       public? true
+      constraints max_length: 100
     end
 
     timestamps()

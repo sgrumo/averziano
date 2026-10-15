@@ -9,7 +9,7 @@ defmodule Averziano.Accounts do
   resources do
     resource Averziano.Accounts.User do
       define :register_user, action: :register
-      define :list_users, action: :read
+      define :list_users, action: :list
       define :get_user, action: :read, get_by: [:id]
       define :update_user, action: :update
       define :delete_user, action: :destroy

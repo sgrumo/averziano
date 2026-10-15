@@ -33,6 +33,18 @@ defmodule Averziano.AccountsTest do
       assert Map.has_key?(errors, :name)
     end
 
+    test "validates the email format and field lengths" do
+      params = %{email: "not-an-email", name: String.duplicate("a", 101)}
+
+      assert {:error, error} = Accounts.register_user(params, actor: actor())
+
+      assert {:error, :unprocessable_entity,
+              %{email: ["must be a valid email address"], name: [name_message]}} =
+               Errors.normalize({:error, error})
+
+      assert name_message =~ "100"
+    end
+
     test "only admins can register another subject" do
       params = %{email: "bob@example.com", name: "Bob", subject: "bob"}
 
@@ -48,7 +60,7 @@ defmodule Averziano.AccountsTest do
       own = generate(user(subject: actor().subject))
       other = generate(user())
 
-      assert {:ok, [%User{id: id}]} = Accounts.list_users(actor: actor())
+      assert {:ok, %{results: [%User{id: id}]}} = Accounts.list_users(actor: actor())
       assert id == own.id
 
       assert {:ok, %User{id: ^id}} = Accounts.get_user(own.id, actor: actor())
@@ -60,8 +72,24 @@ defmodule Averziano.AccountsTest do
     test "admins see every user" do
       users = generate_many(user(), 2)
 
-      assert {:ok, listed} = Accounts.list_users(actor: admin())
+      assert {:ok, %{results: listed}} = Accounts.list_users(actor: admin())
       assert Enum.sort(Enum.map(listed, & &1.id)) == Enum.sort(Enum.map(users, & &1.id))
+    end
+  end
+
+  describe "list_users/1" do
+    test "pages through users with a keyset cursor" do
+      generate_many(user(), 3)
+
+      assert {:ok, %{results: [_, _] = first, more?: true}} =
+               Accounts.list_users(actor: admin(), page: [limit: 2])
+
+      cursor = List.last(first).__metadata__.keyset
+
+      assert {:ok, %{results: [last], more?: false}} =
+               Accounts.list_users(actor: admin(), page: [limit: 2, after: cursor])
+
+      refute last.id in Enum.map(first, & &1.id)
     end
   end
 
@@ -80,7 +108,7 @@ defmodule Averziano.AccountsTest do
       assert Errors.normalize({:error, error}) == {:error, :forbidden}
 
       assert :ok = Accounts.delete_user(own, actor: actor())
-      assert {:ok, [%User{id: other_id}]} = Accounts.list_users(actor: admin())
+      assert {:ok, %{results: [%User{id: other_id}]}} = Accounts.list_users(actor: admin())
       assert other_id == other.id
     end
 
@@ -99,7 +127,7 @@ defmodule Averziano.AccountsTest do
       user = generate(user())
 
       # `no_filter_static_forbidden_reads?: false` turns a forbidden read into an empty result.
-      assert {:ok, []} = Accounts.list_users()
+      assert {:ok, %{results: []}} = Accounts.list_users()
 
       # The subject comes from the actor, so the changeset is invalid before policies run.
       assert {:error, error} = Accounts.register_user(%{email: "x@example.com", name: "X"})
