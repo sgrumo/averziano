@@ -85,6 +85,35 @@ defmodule AverzianoWeb.Telemetry do
     ]
   end
 
+  @doc """
+  Metrics shown on the TelemetryUI dashboard (`/dev/metrics` in dev).
+  TelemetryUI needs its own metric structs, so these are built with
+  `TelemetryUI.Metrics` rather than reusing `metrics/0`.
+  """
+  @spec dashboard_metrics() :: [struct()]
+  def dashboard_metrics do
+    [
+      TelemetryUI.Metrics.counter("phoenix.router_dispatch.stop.duration",
+        description: "Requests",
+        unit: {:native, :millisecond},
+        ui_options: [unit: " requests"]
+      ),
+      TelemetryUI.Metrics.median("phoenix.router_dispatch.stop.duration",
+        description: "Request duration by route",
+        tags: [:route],
+        unit: {:native, :millisecond}
+      ),
+      TelemetryUI.Metrics.median("averziano.repo.query.total_time",
+        description: "Database query time",
+        unit: {:native, :millisecond}
+      ),
+      TelemetryUI.Metrics.value_over_time("vm.memory.total",
+        description: "VM memory",
+        unit: {:byte, :megabyte}
+      )
+    ]
+  end
+
   defp periodic_measurements do
     [
       # A module, function and arguments to be invoked periodically.

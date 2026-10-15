@@ -166,6 +166,7 @@ Allowed browser origins are read per request from `config :averziano, cors_origi
 | `/api` | `:api` | Public JSON endpoints |
 | `/api` | `:api`, `:authenticated` | Protected JSON endpoints (`/api/users` example resource) |
 | `/admin` | `:browser` | Admin LiveViews (`live_session` with auth hook) |
+| `/dev/metrics` | `:browser` | TelemetryUI dashboard (dev only) |
 
 `GET /api/users` is paginated with a keyset cursor: `?limit=` (1–100, default 50) and `?after=` set to the previous response's `meta.next` (`null` on the last page).
 
@@ -265,7 +266,7 @@ Erlang/Elixir versions are pinned in `.tool-versions`; CI installs exactly those
 ## Observability
 
 - **Health check:** `GET /health` via `plug_checkup` (checks database connectivity)
-- **Metrics:** `telemetry_ui` for request counts/durations, DB query times, VM memory
+- **Metrics:** `telemetry_ui` dashboard at `/dev/metrics` in dev (enabled by `telemetry_ui_enabled: true` in `config/dev.exs`; metrics in `AverzianoWeb.Telemetry.dashboard_metrics/0`, events stored in the `telemetry_ui_events` table)
 - **Telemetry events:** Standard Phoenix + Ecto telemetry configured in `AverzianoWeb.Telemetry`
 
 ## Key Dependencies

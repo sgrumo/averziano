@@ -22,6 +22,9 @@ config :averziano, AverzianoWeb.Endpoint,
 
 config :averziano, dev_routes: true
 
+# TelemetryUI dashboard at /dev/metrics (stores events in Postgres)
+config :averziano, telemetry_ui_enabled: true
+
 # Dev-only HMAC secret; mint local tokens with `Averziano.Auth.Token.generate_and_sign!/2`
 # (pass `Averziano.Auth.Token.signer()` and `iss`/`aud`/`sub` claims).
 config :averziano, Averziano.Auth.Token,

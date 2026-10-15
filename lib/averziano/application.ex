@@ -36,7 +36,7 @@ defmodule Averziano.Application do
 
   defp telemetry_ui_config do
     [
-      metrics: AverzianoWeb.Telemetry.metrics(),
+      metrics: AverzianoWeb.Telemetry.dashboard_metrics(),
       theme: %{title: "Averziano Metrics"},
       backend: %TelemetryUI.Backend.EctoPostgres{repo: Averziano.Repo}
     ]

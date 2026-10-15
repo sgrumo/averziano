@@ -42,10 +42,12 @@ defmodule AverzianoWeb.Router do
     end
   end
 
-  # Metrics dashboard (telemetry_ui)
+  # Metrics dashboard (telemetry_ui), dev only
   if Application.compile_env(:averziano, :dev_routes) do
     scope "/dev" do
       pipe_through :browser
+
+      get "/metrics", TelemetryUI.Web, [], assigns: %{telemetry_ui_allowed: true}
     end
   end
 end

@@ -16,7 +16,7 @@ Averziano is a Phoenix 1.8 application (JSON API + LiveView) built on the Ash fr
 - `mix test test/path/to/test.exs:42` — run a specific test by line number
 - `mix test --failed` — re-run previously failed tests
 - `mix precommit` — compile (warnings-as-errors), unlock unused deps, format, `credo --strict`, `ash.codegen --check`, test. **Run before committing.**
-- `mix ash.codegen <name>` — generate migrations + resource snapshots from resource changes (**never write migrations by hand**; `mix ash.codegen --dev` for throwaway dev iterations, then squash with a named run)
+- `mix ash.codegen <name>` — generate migrations + resource snapshots from resource changes (**never write migrations by hand** for Ash resources; the only exception is library-owned tables like TelemetryUI's, which call the library's own migration module; `mix ash.codegen --dev` for throwaway dev iterations, then squash with a named run)
 - `mix ash.codegen --check` — fail if resources have changes without a migration
 - `mix ash.migrate` / `mix ash.reset` — run migrations / drop + recreate
 - `mix ash.gen.domain Averziano.Name` / `mix ash.gen.resource Averziano.Name.Thing --domain Averziano.Name ...` — Igniter generators for new domains/resources
@@ -47,7 +47,7 @@ Swappable token verification via config: `config :averziano, token_verifier: Ave
 
 ### Router Organization
 
-Pipelines: `:api`, `:browser`, `:authenticated`. Health check forwarded to `AverzianoWeb.Health.Router`. Scopes: public API, authenticated API, admin (browser + LiveView with auth hook; raises `AverzianoWeb.UnauthorizedError` → 401 without a session user). CORS origins come from runtime config `:cors_origins` (`CORS_ORIGINS` in prod), without credentials.
+Pipelines: `:api`, `:browser`, `:authenticated`. Health check forwarded to `AverzianoWeb.Health.Router`. Scopes: public API, authenticated API, admin (browser + LiveView with auth hook; raises `AverzianoWeb.UnauthorizedError` → 401 without a session user), and `/dev/metrics` (TelemetryUI, dev only). CORS origins come from runtime config `:cors_origins` (`CORS_ORIGINS` in prod), without credentials.
 
 ### Web Module Dispatch
 
