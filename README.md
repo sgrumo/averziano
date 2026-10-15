@@ -57,6 +57,7 @@ lib/
       actor.ex               # Ash actor struct (subject + admin?) built from claims
       token.ex               # JWT verification (Joken)
       token_verifier.ex      # Behaviour shared by Token and the test mock
+    release.ex               # Release tasks (bin/migrate)
   averziano_web/             # Web layer
     endpoint.ex              # HTTP endpoint (CORS, sessions, LiveView socket)
     router.ex                # Route definitions (API, browser, admin)
@@ -252,6 +253,16 @@ Flags: `error_handling`, `unknown`, `unmatched_returns`, `underspecs`. PLT files
 ## Toolchain & CI
 
 Erlang/Elixir versions are pinned in `.tool-versions`; CI installs exactly those (`erlef/setup-beam` with `version-file`). `.github/workflows/pr-check.yml` runs on pull requests and pushes to `main` (so `main` seeds the dependency cache): compile + codegen + unused deps, then format, credo, dialyzer and tests in parallel. Shared setup lives in `.github/actions/setup-elixir`.
+
+## Deployment
+
+Generated with `mix phx.gen.release --docker`:
+
+```bash
+docker build -t averziano .
+```
+
+The image runs `bin/server`; run migrations with `bin/migrate` (`Averziano.Release.migrate/0`). Required env vars: `DATABASE_URL`, `SECRET_KEY_BASE`, `PHX_HOST`, `JWT_KEY`, `JWT_ISSUER`, `JWT_AUDIENCE` (plus optional `JWT_ALG`, `CORS_ORIGINS`, `PORT`, `POOL_SIZE`).
 
 ## Testing
 
