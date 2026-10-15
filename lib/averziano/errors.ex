@@ -15,7 +15,7 @@ defmodule Averziano.Errors do
 
   @type t :: {:error, reason()}
   @type t(details) :: {:error, reason(), details}
-  @type field_errors :: %{optional(atom()) => [String.t()]}
+  @type field_errors :: %{optional(atom() | String.t()) => [String.t()]}
 
   @doc """
   Normalizes an Ash error tuple into a typed error tuple.
@@ -55,18 +55,53 @@ defmodule Averziano.Errors do
 
   @spec field_errors([Exception.t()]) :: field_errors()
   defp field_errors(errors) do
-    Enum.group_by(errors, &error_field/1, &error_message/1)
+    errors
+    |> Enum.flat_map(&field_error/1)
+    |> Enum.group_by(fn {field, _message} -> field end, fn {_field, message} -> message end)
+  end
+
+  # Errors with an `AshPhoenix.FormData.Error` implementation (the same mapping
+  # Ash forms use) carry a short, client-facing message such as "is required".
+  # Anything else falls back to the exception message, minus Ash's bread crumbs.
+  defp field_error(error) do
+    if AshPhoenix.FormData.Error.impl_for(error) do
+      error
+      |> AshPhoenix.FormData.Error.to_form_error()
+      |> List.wrap()
+      |> Enum.map(fn {field, message, vars} ->
+        {field || :base, interpolate(message || "is invalid", vars)}
+      end)
+    else
+      [{error_field(error), fallback_message(error)}]
+    end
   end
 
   defp error_field(%{field: field}) when is_atom(field) and not is_nil(field), do: field
   defp error_field(%{fields: [field | _]}) when is_atom(field), do: field
   defp error_field(_error), do: :base
 
-  defp error_message(%{message: message, vars: vars}) when is_binary(message) do
-    Regex.replace(~r"%{(\w+)}", message, fn _, key ->
-      vars |> Keyword.get(String.to_existing_atom(key), key) |> to_string()
+  defp fallback_message(error) do
+    error
+    |> Map.replace(:bread_crumbs, [])
+    |> Exception.message()
+    |> String.trim()
+  end
+
+  defp interpolate(message, vars) do
+    vars = Map.new(vars || [], fn {key, value} -> {to_string(key), value} end)
+
+    Regex.replace(~r"%{(\w+)}", message, fn placeholder, key ->
+      case Map.fetch(vars, key) do
+        {:ok, value} -> to_text(value)
+        :error -> placeholder
+      end
     end)
   end
 
-  defp error_message(error), do: error |> Exception.message() |> String.trim()
+  defp to_text(value) when is_binary(value), do: value
+  defp to_text(value) when is_list(value), do: Enum.map_join(value, ", ", &to_text/1)
+
+  defp to_text(value) do
+    if String.Chars.impl_for(value), do: to_string(value), else: inspect(value)
+  end
 end

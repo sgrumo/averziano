@@ -48,7 +48,7 @@ defmodule AverzianoWeb.UserControllerTest do
        %{conn: conn} do
     conn = authenticate(conn)
 
-    assert %{"errors" => %{"name" => [_ | _]}} =
+    assert %{"errors" => %{"name" => ["is required"]}} =
              conn
              |> post(~p"/api/users", user: %{"email" => "ada@example.com"})
              |> json_response(422)
