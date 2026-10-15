@@ -11,6 +11,8 @@ defmodule Averziano.Auth.Token do
 
   use Joken.Config
 
+  @behaviour Averziano.Auth.TokenVerifier
+
   @required_claims ~w(sub exp iss aud)
 
   @impl true
@@ -22,7 +24,9 @@ defmodule Averziano.Auth.Token do
     |> add_claim("sub", nil, &(is_binary(&1) and &1 != ""))
   end
 
-  @spec verify_token(String.t()) :: {:ok, map()} | {:error, :unauthorized}
+  @impl Averziano.Auth.TokenVerifier
+  @spec verify_token(String.t()) ::
+          {:ok, Averziano.Auth.TokenVerifier.claims()} | {:error, :unauthorized}
   def verify_token(token) do
     with {:ok, claims} <- verify_and_validate(token, signer()),
          true <- Enum.all?(@required_claims, &Map.has_key?(claims, &1)) do

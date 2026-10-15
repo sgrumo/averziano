@@ -29,11 +29,12 @@ defmodule AverzianoWeb.Endpoint do
   plug Plug.RequestId
   plug Plug.Telemetry, event_prefix: [:phoenix, :endpoint]
 
+  # Origins are read per request so production can set them via CORS_ORIGINS.
+  # No credentials: the API authenticates with Bearer tokens, not cookies.
   plug Corsica,
-    origins: Application.compile_env(:averziano, :cors_origins, ["http://localhost:3000"]),
+    origins: {__MODULE__, :allowed_origin?, []},
     allow_headers: ["authorization", "content-type"],
-    allow_methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allow_credentials: true
+    allow_methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
 
   plug Plug.Parsers,
     parsers: [:urlencoded, :multipart, :json],
@@ -44,4 +45,10 @@ defmodule AverzianoWeb.Endpoint do
   plug Plug.Head
   plug Plug.Session, @session_options
   plug AverzianoWeb.Router
+
+  @doc false
+  @spec allowed_origin?(Plug.Conn.t(), String.t()) :: boolean()
+  def allowed_origin?(_conn, origin) do
+    origin in Application.get_env(:averziano, :cors_origins, [])
+  end
 end

@@ -59,6 +59,8 @@ config :averziano, AverzianoWeb.Endpoint,
 
 config :averziano, token_verifier: Averziano.Auth.Token
 
+config :averziano, cors_origins: ["http://localhost:3000"]
+
 config :logger, :default_formatter,
   format: "$time $metadata[$level] $message\n",
   metadata: [:request_id]

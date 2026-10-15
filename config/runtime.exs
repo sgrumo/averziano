@@ -20,8 +20,11 @@ if System.get_env("PHX_SERVER") do
   config :averziano, AverzianoWeb.Endpoint, server: true
 end
 
-config :averziano, AverzianoWeb.Endpoint,
-  http: [port: String.to_integer(System.get_env("PORT", "4000"))]
+# Test pins its own port in config/test.exs.
+if config_env() != :test do
+  config :averziano, AverzianoWeb.Endpoint,
+    http: [port: String.to_integer(System.get_env("PORT", "4000"))]
+end
 
 if config_env() == :prod do
   database_url =
@@ -66,6 +69,14 @@ if config_env() == :prod do
     audience:
       System.get_env("JWT_AUDIENCE") ||
         raise("environment variable JWT_AUDIENCE is missing (expected `aud` claim)")
+
+  # Comma-separated list of browser origins allowed to call the API.
+  config :averziano,
+    cors_origins:
+      "CORS_ORIGINS"
+      |> System.get_env("")
+      |> String.split(",", trim: true)
+      |> Enum.map(&String.trim/1)
 
   host = System.get_env("PHX_HOST") || "example.com"
 

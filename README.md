@@ -54,8 +54,9 @@ lib/
     accounts/
       user.ex                # Ash.Resource (AshPostgres data layer, policies)
     auth/
+      actor.ex               # Ash actor struct (subject + admin?) built from claims
       token.ex               # JWT verification (Joken)
-      token_mock.ex          # Test mock (swapped via config)
+      token_verifier.ex      # Behaviour shared by Token and the test mock
   averziano_web/             # Web layer
     endpoint.ex              # HTTP endpoint (CORS, sessions, LiveView socket)
     router.ex                # Route definitions (API, browser, admin)
@@ -67,7 +68,8 @@ lib/
     plugs/
       auth.ex                # Bearer token auth plug
     live/
-      auth_hook.ex           # LiveView on_mount session auth
+      auth_hook.ex           # LiveView on_mount session auth (401 without a session user)
+    unauthorized_error.ex    # Exception rendered as 401
     health/
       router.ex              # GET /health via plug_checkup
       checks.ex              # Health check implementations
@@ -148,7 +150,13 @@ The `AverzianoWeb.Plugs.Auth` plug reads the verifier from config at runtime, en
 | `JWT_ISSUER` | Expected `iss` claim |
 | `JWT_AUDIENCE` | Expected `aud` claim |
 
-LiveView uses session-based auth via the `AverzianoWeb.Live.AuthHook` `on_mount` callback.
+`Averziano.Auth.TokenMock` lives in `test/support/` and is only compiled in test. Both verifiers implement the `Averziano.Auth.TokenVerifier` behaviour.
+
+LiveView uses session-based auth via the `AverzianoWeb.Live.AuthHook` `on_mount` callback. Without a `current_user_id` in the session it raises `AverzianoWeb.UnauthorizedError` (401); there is no session login flow yet.
+
+### CORS
+
+Allowed browser origins are read per request from `config :averziano, cors_origins: [...]` (default `["http://localhost:3000"]`; production reads the comma-separated `CORS_ORIGINS` env var). Credentials are not allowed: the API uses Bearer tokens.
 
 ### Router Organization
 
