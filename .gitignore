@@ -33,3 +33,6 @@ averziano-*.tar
 
 # Static assets built from source
 /priv/static/assets/
+
+# Personal Claude Code settings
+/.claude/settings.local.json

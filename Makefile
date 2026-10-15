@@ -1,4 +1,4 @@
-.PHONY: up down dev-api test
+.PHONY: up down dev-api test precommit
 
 up:
 	docker compose up -d
@@ -13,9 +13,5 @@ dev-api: up
 test: up
 	mix test
 
-checklist:
-	mix format --check-formatted
-	mix credo --strict
-	mix compile --warnings-as-errors
-	mix ash.codegen --check
-	mix test
+precommit: up
+	mix precommit

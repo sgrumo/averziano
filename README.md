@@ -201,7 +201,7 @@ mix test                     # Run all tests
 mix test path/to/test.exs    # Run a single test file
 mix test path/to/test.exs:42 # Run test at specific line
 mix test --failed            # Re-run failed tests
-mix precommit                # Compile (warnings-as-errors) + format + codegen check + test
+mix precommit                # Compile (warnings-as-errors) + format + credo + codegen check + test
 mix credo --strict           # Static analysis
 mix dialyzer                 # Type checking (first run builds PLT)
 mix ash.codegen name         # Generate migrations + snapshots from resource changes
@@ -219,6 +219,7 @@ make up       # Start Docker Postgres
 make down     # Stop Docker Postgres
 make dev-api  # Start infra + setup + dev server
 make test     # Start infra + run tests
+make precommit # Start infra + mix precommit
 ```
 
 ### Precommit
@@ -229,7 +230,7 @@ Always run before committing:
 mix precommit
 ```
 
-This runs compilation with `--warnings-as-errors`, unlocks unused deps, formats code, checks that migrations are up to date with resources (`ash.codegen --check`), and runs the full test suite.
+This runs compilation with `--warnings-as-errors`, unlocks unused deps, formats code, runs `credo --strict`, checks that migrations are up to date with resources (`ash.codegen --check`), and runs the full test suite.
 
 ## Static Analysis
 
@@ -245,7 +246,11 @@ Configured in `.credo.exs` with notable rules:
 
 ### Dialyzer
 
-Flags: `error_handling`, `unknown`, `unmatched_returns`, `underspecs`. PLT files cached in `priv/plts/` (gitignored).
+Flags: `error_handling`, `unknown`, `unmatched_returns`, `underspecs`. PLT files cached in `priv/plts/` (gitignored); delete them after changing Erlang/Elixir versions. Runs in CI, not in `mix precommit` (too slow).
+
+## Toolchain & CI
+
+Erlang/Elixir versions are pinned in `.tool-versions`; CI installs exactly those (`erlef/setup-beam` with `version-file`). `.github/workflows/pr-check.yml` runs on pull requests and pushes to `main` (so `main` seeds the dependency cache): compile + codegen + unused deps, then format, credo, dialyzer and tests in parallel. Shared setup lives in `.github/actions/setup-elixir`.
 
 ## Testing
 

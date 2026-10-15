@@ -15,13 +15,13 @@ Averziano is a Phoenix 1.8 application (JSON API + LiveView) built on the Ash fr
 - `mix test test/path/to/test.exs` — run a single test file
 - `mix test test/path/to/test.exs:42` — run a specific test by line number
 - `mix test --failed` — re-run previously failed tests
-- `mix precommit` — compile (warnings-as-errors), unlock unused deps, format, `ash.codegen --check`, test. **Run before committing.**
+- `mix precommit` — compile (warnings-as-errors), unlock unused deps, format, `credo --strict`, `ash.codegen --check`, test. **Run before committing.**
 - `mix ash.codegen <name>` — generate migrations + resource snapshots from resource changes (**never write migrations by hand**; `mix ash.codegen --dev` for throwaway dev iterations, then squash with a named run)
 - `mix ash.codegen --check` — fail if resources have changes without a migration
 - `mix ash.migrate` / `mix ash.reset` — run migrations / drop + recreate
 - `mix ash.gen.domain Averziano.Name` / `mix ash.gen.resource Averziano.Name.Thing --domain Averziano.Name ...` — Igniter generators for new domains/resources
 - `mix credo --strict` — static analysis
-- `mix dialyzer` — type checking (first run builds PLT, takes a while)
+- `mix dialyzer` — type checking (first run builds PLT, takes a while; runs in CI, not in precommit)
 - `make up` / `make down` — start/stop Docker Postgres
 - `make dev-api` — start infra + setup + dev server
 
